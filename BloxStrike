@@ -1,0 +1,2128 @@
+if _G.BSHL_UNLOAD then pcall(_G.BSHL_UNLOAD) end
+
+local Players      = game:GetService("Players")
+local RunService   = game:GetService("RunService")
+local UserInput    = game:GetService("UserInputService")
+local SoundService = game:GetService("SoundService")
+local HttpService  = game:GetService("HttpService")
+local Collection   = game:GetService("CollectionService")
+local Content      = game:GetService("ContentProvider")
+local Lighting     = game:GetService("Lighting")
+local Replicated   = game:GetService("ReplicatedStorage")
+
+local LocalPlayer  = Players.LocalPlayer
+local PlayerGui    = LocalPlayer:WaitForChild("PlayerGui")
+local MainGui      = PlayerGui:WaitForChild("MainGui")
+local Menu         = MainGui:WaitForChild("Menu")
+local NavBar       = Menu:WaitForChild("Top")
+local SettingsPane = Menu:WaitForChild("Settings")
+local Characters   = workspace:WaitForChild("Characters")
+local Database     = Replicated:WaitForChild("Database")
+local WeaponDb     = Database:WaitForChild("Custom"):WaitForChild("Weapons")
+local MapDb        = Database.Custom.GameStats.Maps
+
+-- UnnamedWard Theme Colors
+local LIGHT_PINK   = Color3.fromRGB(255, 182, 193)
+local LIGHT_BLUE   = Color3.fromRGB(173, 216, 230)
+local SOFT_PINK    = Color3.fromRGB(255, 209, 220)
+local SOFT_BLUE    = Color3.fromRGB(200, 230, 245)
+local DEEP_PINK    = Color3.fromRGB(255, 105, 180)
+local DEEP_BLUE    = Color3.fromRGB(100, 149, 237)
+local DARK_PINK    = Color3.fromRGB(219, 112, 147)
+local DARK_BLUE    = Color3.fromRGB(70, 130, 180)
+
+local BLACK = Color3.new(0, 0, 0)
+local WHITE = Color3.fromRGB(255, 255, 255)
+
+local PALETTE = {
+    Red    = Color3.fromRGB(255, 60, 60),
+    Orange = Color3.fromRGB(255, 145, 40),
+    Yellow = Color3.fromRGB(255, 225, 60),
+    Green  = Color3.fromRGB(80, 240, 130),
+    Blue   = Color3.fromRGB(70, 180, 255),
+    Purple = Color3.fromRGB(190, 110, 255),
+    Gray   = Color3.fromRGB(150, 150, 150),
+    White  = WHITE,
+    Black  = BLACK,
+    Pink   = LIGHT_PINK,
+    LightBlue = LIGHT_BLUE,
+}
+
+local COLOR_NAMES   = { "Red", "Orange", "Yellow", "Green", "Blue", "Purple", "White", "Pink", "LightBlue" }
+local TRACE_NAMES   = { "Blue", "Red", "Orange", "White", "Pink", "LightBlue" }
+local FILL_NAMES    = { "White", "Gray", "Blue", "Black", "Pink", "LightBlue" }
+local OUTLINE_NAMES = { "None", "Red", "Yellow", "Green", "Blue", "White", "Black", "Pink", "LightBlue" }
+local MODE_NAMES    = { "Team", "Health", "Fixed" }
+
+local ASSET = {
+    Nav   = "rbxassetid://83626408925438",
+    Trace = "rbxassetid://446111271",
+}
+
+local TEAM_COLOR = {
+    ["Counter-Terrorists"] = Color3.fromRGB(0, 75, 200),
+    ["Terrorists"]         = Color3.fromRGB(255, 220, 50),
+}
+
+local PLAYING = {
+    ["Counter-Terrorists"] = true,
+    ["Terrorists"]         = true,
+}
+
+local HEALTH_BANDS = {
+    Color3.fromRGB(215,  30,  40),
+    Color3.fromRGB(255,  65,  50),
+    Color3.fromRGB(255, 105,  45),
+    Color3.fromRGB(255, 145,  40),
+    Color3.fromRGB(255, 180,  50),
+    Color3.fromRGB(255, 215,  60),
+    Color3.fromRGB(225, 230,  70),
+    Color3.fromRGB(190, 235,  80),
+    Color3.fromRGB(140, 240, 100),
+    Color3.fromRGB( 80, 240, 130),
+}
+
+local HIT_PACKS = {
+    { name = "RUST",      id = "rbxassetid://128633263668964" },
+    { name = "Neverlose", id = "rbxassetid://82938206376993"  },
+    { name = "Headshoot", id = "rbxassetid://132696933316985" },
+}
+local HIT_NAMES = { "RUST", "Neverlose", "Headshoot" }
+local HIT_SCOPE = { "Head + body", "Head only", "Body only" }
+local BI_MODES  = { "Both", "Server", "Client" }
+local TB_DELAYS = { 0, 10, 20, 40, 80, 120, 180, 220, 300 }
+
+-- UnnamedWard themed switch colors
+local SWITCH = {
+    Lit = LIGHT_BLUE,
+    Dim = Color3.fromRGB(180, 180, 190),
+}
+
+-- UnnamedWard themed tab colors
+local TAB = {
+    On      = LIGHT_PINK,
+    Off     = Color3.fromRGB(245, 235, 240),
+    TextOn  = Color3.fromRGB(80, 40, 60),
+    TextOff = Color3.fromRGB(120, 100, 110),
+}
+
+local CFG = {
+    enabled      = true,
+    enemiesOnly  = true,
+    throughWalls = true,
+    colorMode    = "Team",
+    colorName    = "Pink",
+    fill         = 0.35,
+    outline      = 0.9,
+    maxDistance  = 0,
+
+    bulletTrace  = false,
+    traceColor   = "LightBlue",
+    traceTime    = 3,
+
+    hitSound     = false,
+    hitPack      = "RUST",
+    hitWhere     = "Head + body",
+    hitVolume    = 0.5,
+
+    autoBhop     = false,
+
+    wallbang     = false,
+    wbSize       = 0.6,
+    wbAlpha      = 0.5,
+
+    spreadCircle = false,
+    scFill       = "LightBlue",
+    scAlpha      = 0.25,
+    scOutline    = "None",
+
+    worldLight   = false,
+    wPreset      = "Noon",
+    wClock       = 12,
+    wBright      = 3,
+    wExposure    = 0,
+    wDark        = 0,
+
+    bombInfo     = false,
+    bombShowTime = true,
+    bombShowDist = true,
+
+    bulletImpacts = false,
+    biMode        = "Both",
+    biTime        = 1.5,
+
+    triggerbot   = false,
+    tbWhere      = "Head + body",
+    tbEnemies    = true,
+    tbWall       = false,
+    tbMinDmg     = 25,
+    tbDelay      = 80,
+}
+
+local Runtime = {
+    active   = true,
+    jumpHeld = false,
+    impacts  = 0,
+    chance   = 0,
+    guard    = false,
+    shots    = 0,
+    damage   = 0,
+    walls    = 0,
+}
+
+local connections, owned = {}, {}
+
+local function bind(signal, fn)
+    local c = signal:Connect(fn)
+    connections[#connections + 1] = c
+    return c
+end
+
+local function own(instance)
+    owned[#owned + 1] = instance
+    return instance
+end
+
+local function mk(class, props, parent)
+    local instance = Instance.new(class)
+    for key, value in pairs(props) do
+        instance[key] = value
+    end
+    if parent then instance.Parent = parent end
+    return instance
+end
+
+local function suffix(prefix)
+    return prefix .. tostring(math.random(100000, 999999))
+end
+
+local function moduleOf(container, name)
+    local child = name and container:FindFirstChild(tostring(name))
+    if not (child and child:IsA("ModuleScript")) then return nil end
+    local ok, value = pcall(require, child)
+    if not ok or type(value) ~= "table" then return nil end
+    return value
+end
+
+local Format = {}
+
+function Format.percent(v)
+    return tostring(math.floor(v * 100 + 0.5)) .. "%"
+end
+
+function Format.oneDp(v)
+    return string.format("%.1f", v)
+end
+
+function Format.signed(v)
+    return string.format("%+.2f", v)
+end
+
+function Format.seconds(v)
+    return string.format("%.1f SEC", v)
+end
+
+function Format.studs(v)
+    return string.format("%.1f STUDS", v)
+end
+
+function Format.reach(v)
+    if v <= 0 then return "UNLIMITED" end
+    return tostring(math.floor(v)) .. " STUDS"
+end
+
+function Format.health(v)
+    return string.format("%d HP", v)
+end
+
+local GuiHost = PlayerGui
+do
+    if type(gethui) == "function" then
+        local ok, host = pcall(gethui)
+        if ok and typeof(host) == "Instance" then GuiHost = host end
+    end
+    if GuiHost == PlayerGui then
+        local ok, host = pcall(game.GetService, game, "CoreGui")
+        if ok and typeof(host) == "Instance" then GuiHost = host end
+    end
+end
+
+local WorldBin = own(mk("Folder", { Name = suffix("BT_") }, workspace))
+
+local Target = {}
+do
+    local NOT_DAMAGE = { CameraPart = true }
+
+    function Target.character(player)
+        local char = player.Character or Characters:FindFirstChild(player.Name)
+        if not char or char.Parent ~= Characters then return nil end
+        if char:GetAttribute("Dead") then return nil end
+        local hp = char:GetAttribute("Health")
+        if typeof(hp) == "number" and hp <= 0 then return nil end
+        if player:GetAttribute("IsSpectating") then return nil end
+        return char
+    end
+
+    function Target.isEnemy(player)
+        local mine, theirs = LocalPlayer:GetAttribute("Team"), player:GetAttribute("Team")
+        if not PLAYING[mine] then return true end
+        if not PLAYING[theirs] then return false end
+        return theirs ~= mine
+    end
+
+    function Target.classify(instance)
+        if typeof(instance) ~= "Instance" or not instance:IsA("BasePart") then return nil end
+        if NOT_DAMAGE[instance.Name] then return nil end
+        local model = instance.Parent
+        if not (model and model:IsA("Model") and model.Parent == Characters) then return nil end
+        if model == LocalPlayer.Character or model:GetAttribute("Dead") then return nil end
+        return instance.Name == "Head"
+    end
+
+    function Target.wants(scope, headshot)
+        if scope == "Head only" then return headshot end
+        if scope == "Body only" then return not headshot end
+        return true
+    end
+end
+
+local Highlight = {}
+do
+    local host = own(mk("Folder", { Name = suffix("HL_") }, GuiHost))
+    local marks = {}
+
+    local function bandColor(alpha)
+        return HEALTH_BANDS[math.clamp(math.ceil(alpha * 10), 1, 10)]
+    end
+
+    local function drop(player)
+        local mark = marks[player]
+        if not mark then return end
+        if mark.hl then mark.hl:Destroy() end
+        marks[player] = nil
+    end
+
+    local function inRange(char)
+        if CFG.maxDistance <= 0 then return true end
+        local camera = workspace.CurrentCamera
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not camera or not root then return true end
+        return (camera.CFrame.Position - root.Position).Magnitude <= CFG.maxDistance
+    end
+
+    local function colorFor(player, char)
+        if CFG.colorMode == "Team" then
+            return TEAM_COLOR[player:GetAttribute("Team")] or PALETTE[CFG.colorName]
+        elseif CFG.colorMode == "Health" then
+            local hp = tonumber(char:GetAttribute("Health")) or 100
+            local max = tonumber(char:GetAttribute("MaxHealth")) or 100
+            return bandColor(math.clamp(hp / math.max(max, 1), 0, 1))
+        end
+        return PALETTE[CFG.colorName] or LIGHT_PINK
+    end
+
+    local accumulator = 0
+
+    bind(RunService.Heartbeat, function(dt)
+        if not Runtime.active then return end
+        accumulator = accumulator + dt
+        if accumulator < 0.08 then return end
+        accumulator = 0
+
+        local seen = {}
+
+        if CFG.enabled then
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    local char = Target.character(player)
+                    if char and (not CFG.enemiesOnly or Target.isEnemy(player)) and inRange(char) then
+                        local mark = marks[player]
+                        if not mark then
+                            mark = {}
+                            marks[player] = mark
+                        end
+                        if not mark.hl then
+                            mark.hl = mk("Highlight", { Name = "M" }, host)
+                        end
+
+                        local color = colorFor(player, char)
+                        mark.hl.Adornee = char
+                        mark.hl.DepthMode = CFG.throughWalls
+                            and Enum.HighlightDepthMode.AlwaysOnTop
+                            or Enum.HighlightDepthMode.Occluded
+                        mark.hl.FillColor = color
+                        mark.hl.OutlineColor = color
+                        mark.hl.FillTransparency = 1 - CFG.fill
+                        mark.hl.OutlineTransparency = 1 - CFG.outline
+                        mark.hl.Enabled = true
+
+                        seen[player] = true
+                    end
+                end
+            end
+        end
+
+        for player in pairs(marks) do
+            if not seen[player] then drop(player) end
+        end
+    end)
+
+    bind(Players.PlayerRemoving, drop)
+
+    function Highlight.clear()
+        for player in pairs(marks) do drop(player) end
+        table.clear(marks)
+    end
+end
+
+local Tracer = {}
+do
+    local MAX = 120
+
+    local host = mk("Part", {
+        Name = "H",
+        Anchored = true,
+        CanCollide = false,
+        CanQuery = false,
+        CanTouch = false,
+        Transparency = 1,
+        Size = Vector3.new(0.05, 0.05, 0.05),
+        CFrame = CFrame.new(),
+    }, WorldBin)
+
+    local live, pool = {}, {}
+
+    local function build()
+        local a0 = mk("Attachment", {}, host)
+        local a1 = mk("Attachment", {}, host)
+        local beam = mk("Beam", {
+            Attachment0 = a0,
+            Attachment1 = a1,
+            Texture = ASSET.Trace,
+            TextureMode = Enum.TextureMode.Wrap,
+            TextureLength = 6,
+            TextureSpeed = 0,
+            Width0 = 0.22,
+            Width1 = 0.22,
+            FaceCamera = true,
+            LightEmission = 1,
+            LightInfluence = 0,
+            Segments = 1,
+        }, host)
+        return { a0 = a0, a1 = a1, beam = beam }
+    end
+
+    local function release(trace)
+        trace.beam.Enabled = false
+        pool[#pool + 1] = trace
+    end
+
+    function Tracer.fire(origin, target, distance)
+        if typeof(origin) ~= "Vector3" or typeof(target) ~= "Vector3" then return end
+
+        local length = (typeof(distance) == "number" and distance > 0.05 and distance < 5000)
+            and distance or 400
+
+        local finish
+        local reach = target.Magnitude
+        local gap = (target - origin).Magnitude
+        if reach >= 1e-4 and reach <= 1.001 then
+            finish = origin + target.Unit * length
+        elseif gap > 0.05 and gap < 5000 then
+            finish = target
+        else
+            return
+        end
+
+        if #live >= MAX then
+            release(table.remove(live, 1))
+        end
+
+        local trace = table.remove(pool) or build()
+        trace.a0.Position = origin
+        trace.a1.Position = finish
+        trace.beam.Color = ColorSequence.new(PALETTE[CFG.traceColor] or LIGHT_BLUE)
+        trace.beam.Transparency = NumberSequence.new(0)
+        trace.beam.Enabled = true
+        trace.born = os.clock()
+        trace.life = math.max(CFG.traceTime, 0.1)
+        trace.fade = 0
+        live[#live + 1] = trace
+    end
+
+    bind(RunService.Heartbeat, function()
+        for i = #live, 1, -1 do
+            local trace = live[i]
+            local alpha = (os.clock() - trace.born) / trace.life
+            if alpha >= 1 then
+                release(trace)
+                table.remove(live, i)
+            else
+                local fade = alpha < 0.65 and 0 or (alpha - 0.65) / 0.35
+                if math.abs(fade - trace.fade) > 0.03 then
+                    trace.fade = fade
+                    trace.beam.Transparency = NumberSequence.new(fade)
+                end
+            end
+        end
+    end)
+end
+
+local Loadout = {}
+do
+    local cachedRaw, cachedName, cachedPen
+
+    function Loadout.penetration()
+        local raw = LocalPlayer:GetAttribute("CurrentEquipped")
+        if type(raw) ~= "string" then return nil end
+        if raw ~= cachedRaw then
+            cachedRaw, cachedName, cachedPen = raw, nil, nil
+            local ok, decoded = pcall(HttpService.JSONDecode, HttpService, raw)
+            if ok and type(decoded) == "table" and type(decoded.Name) == "string" then
+                cachedName = decoded.Name
+                local weapon = moduleOf(WeaponDb, decoded.Name)
+                if weapon and type(weapon.Penetration) == "number" then
+                    cachedPen = weapon.Penetration
+                end
+            end
+        end
+        return cachedPen, cachedName
+    end
+end
+
+local Pierce = {}
+do
+    local MATERIAL_BUDGET = {
+        [Enum.Material.Plastic]       = 10,
+        [Enum.Material.SmoothPlastic] = 10,
+        [Enum.Material.Wood]          = 10,
+        [Enum.Material.WoodPlanks]    = 10,
+        [Enum.Material.Cardboard]     = 10,
+        [Enum.Material.Glass]         = 25,
+        [Enum.Material.Fabric]        = 25,
+    }
+    local VARIANT_BUDGET = { ["Sandy Brick"] = 0, IndoorWall = 0 }
+    local MAP_MINIMUM = { Reactor = -1 }
+
+    local PASS = LIGHT_BLUE
+    local FAIL = LIGHT_PINK
+
+    local rayIgnore
+    do
+        local ok, fn = pcall(function()
+            return require(Replicated.Components.Common.GetRayIgnore)
+        end)
+        if ok and type(fn) == "function" then rayIgnore = fn end
+    end
+
+    function Pierce.ignore()
+        local list = rayIgnore and select(2, pcall(rayIgnore))
+        if type(list) ~= "table" then list = {} end
+        list[#list + 1] = WorldBin
+        return list
+    end
+
+    local function applyMapMinimum(budget)
+        if budget ~= 0 then return budget end
+        local map = workspace:GetAttribute("Map")
+        if type(map) ~= "string" then return budget end
+        return MAP_MINIMUM[map] or budget
+    end
+
+    local function surfaceMaterial(part)
+        local model = part.Parent
+        if model and model:HasTag("BreakableDoor") then return Enum.Material.Metal end
+        return part.Material
+    end
+
+    function Pierce.passThrough(part)
+        if part.Name == "CollisionCapsule" then return true end
+        if part:FindFirstAncestorWhichIsA("Accessory") then return true end
+        return part:HasTag("CharacterAccessory")
+    end
+
+    function Pierce.budget(part, pen)
+        local variant = part.MaterialVariant
+        if variant ~= "" and VARIANT_BUDGET[variant] ~= nil then
+            return applyMapMinimum(VARIANT_BUDGET[variant]) + pen, variant
+        end
+        local material = surfaceMaterial(part)
+        return applyMapMinimum(MATERIAL_BUDGET[material] or 0) + pen, material.Name
+    end
+
+    local depthParams = RaycastParams.new()
+    depthParams.FilterType = Enum.RaycastFilterType.Include
+    depthParams.CollisionGroup = "Bullet"
+
+    function Pierce.thickness(entry, unit, part)
+        depthParams.FilterDescendantsInstances = { part }
+        local far = entry + unit * 1000
+        local result = workspace:Raycast(far, entry - far, depthParams)
+        if not result then return nil end
+        return (entry - result.Position).Magnitude
+    end
+
+    local plate, edge
+
+    local function marker()
+        if plate and plate.Parent then return plate, edge end
+        plate = mk("Part", {
+            Name = "WB",
+            Anchored = true,
+            CanCollide = false,
+            CanQuery = false,
+            CanTouch = false,
+            CastShadow = false,
+            Material = Enum.Material.Neon,
+            Transparency = 1,
+            TopSurface = Enum.SurfaceType.Smooth,
+            BottomSurface = Enum.SurfaceType.Smooth,
+        }, WorldBin)
+        edge = mk("Highlight", {
+            Name = "Edge",
+            Adornee = plate,
+            DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
+            FillTransparency = 1,
+            OutlineTransparency = 0,
+            Enabled = false,
+        }, plate)
+        return plate, edge
+    end
+
+    local drawn = false
+
+    local function hide()
+        if plate then plate.Transparency = 1 end
+        if edge then edge.Enabled = false end
+        drawn = false
+    end
+
+    local shotParams = RaycastParams.new()
+    shotParams.FilterType = Enum.RaycastFilterType.Exclude
+    shotParams.IgnoreWater = false
+    shotParams.CollisionGroup = "Bullet"
+
+    bind(RunService.RenderStepped, function()
+        if not (Runtime.active and CFG.wallbang) then
+            if drawn then hide() end
+            return
+        end
+
+        local pen = Loadout.penetration()
+        if not pen then return hide() end
+
+        local camera = workspace.CurrentCamera
+        if not camera then return hide() end
+
+        local viewport = camera.ViewportSize
+        local ray = camera:ViewportPointToRay(viewport.X * 0.5, viewport.Y * 0.5)
+        local unit = ray.Direction.Unit
+
+        shotParams.FilterDescendantsInstances = Pierce.ignore()
+
+        local hit
+        for _ = 1, 8 do
+            local result = workspace:Raycast(ray.Origin, unit * 1200, shotParams)
+            if not result then break end
+            if not Pierce.passThrough(result.Instance) then
+                hit = result
+                break
+            end
+            shotParams:AddToFilter(result.Instance)
+        end
+        if not hit or hit.Instance:IsDescendantOf(Characters) then return hide() end
+
+        local thickness = Pierce.thickness(hit.Position, unit, hit.Instance)
+        local budget = Pierce.budget(hit.Instance, pen)
+        local punches = thickness ~= nil and thickness <= budget
+
+        pcall(function()
+            local size = CFG.wbSize
+            local color = punches and PASS or FAIL
+            local body, outline = marker()
+            body.Size = Vector3.new(size, size, 0.05)
+            body.CFrame = CFrame.lookAlong(hit.Position + hit.Normal * 0.03, hit.Normal)
+            body.Color = color
+            body.Transparency = CFG.wbAlpha
+            outline.OutlineColor = color
+            outline.Enabled = true
+            drawn = true
+        end)
+    end)
+end
+
+local Impacts = {}
+do
+    local MAX = 80
+    local FILL = 0.7
+
+    local live, pool = {}, {}
+
+    local aimParams = RaycastParams.new()
+    aimParams.FilterType = Enum.RaycastFilterType.Exclude
+    aimParams.IgnoreWater = false
+    aimParams.CollisionGroup = "Bullet"
+
+    local function build()
+        local cube = mk("Part", {
+            Name = "I",
+            Anchored = true,
+            CanCollide = false,
+            CanQuery = false,
+            CanTouch = false,
+            CastShadow = false,
+            Material = Enum.Material.Neon,
+            Shape = Enum.PartType.Block,
+            Size = Vector3.new(0.3, 0.3, 0.3),
+            Transparency = 1,
+            TopSurface = Enum.SurfaceType.Smooth,
+            BottomSurface = Enum.SurfaceType.Smooth,
+        }, WorldBin)
+        mk("Highlight", {
+            Name = "Edge",
+            Adornee = cube,
+            DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
+            FillTransparency = 1,
+            OutlineTransparency = 0,
+            Enabled = false,
+        }, cube)
+        return cube
+    end
+
+    local function release(cube)
+        cube.Transparency = 1
+        cube.Edge.Enabled = false
+        pool[#pool + 1] = cube
+    end
+
+    local function place(position, color)
+        if #live >= MAX then
+            release(table.remove(live, 1))
+        end
+        local cube = table.remove(pool) or build()
+        cube.Position = position
+        cube.Color = color
+        cube.Transparency = FILL
+        cube.Edge.OutlineColor = color
+        cube.Edge.Enabled = true
+        live[#live + 1] = {
+            cube = cube,
+            born = os.clock(),
+            life = math.clamp(tonumber(CFG.biTime) or 1.5, 0.5, 5),
+        }
+    end
+
+    local function aimPoint()
+        local camera = workspace.CurrentCamera
+        if not camera then return nil end
+        local viewport = camera.ViewportSize
+        local ray = camera:ViewportPointToRay(viewport.X * 0.5, viewport.Y * 0.5)
+        aimParams.FilterDescendantsInstances = Pierce.ignore()
+        for _ = 1, 8 do
+            local result = workspace:Raycast(ray.Origin, ray.Direction.Unit * 2000, aimParams)
+            if not result then return nil end
+            if not Pierce.passThrough(result.Instance) then return result.Position end
+            aimParams:AddToFilter(result.Instance)
+        end
+        return nil
+    end
+
+    function Impacts.record(hits)
+        local mode = CFG.biMode
+        local landed
+        local last = hits[#hits]
+        if last and typeof(last.Position) == "Vector3" then landed = last.Position end
+        local aimed = aimPoint()
+        if landed and mode ~= "Client" then place(landed, LIGHT_PINK) end
+        if aimed and mode ~= "Server" then place(aimed, LIGHT_BLUE) end
+        Runtime.gap = (landed and aimed) and (landed - aimed).Magnitude or nil
+    end
+
+    bind(RunService.Heartbeat, function()
+        for i = #live, 1, -1 do
+            local entry = live[i]
+            if os.clock() - entry.born >= entry.life then
+                release(entry.cube)
+                table.remove(live, i)
+            end
+        end
+        Runtime.impacts = #live
+    end)
+end
+
+local Sky = {}
+do
+    local PHASES = {
+        { "Night", 0 }, { "Dawn", 6 }, { "Morning", 9 },
+        { "Noon", 12 }, { "Afternoon", 16 }, { "Dusk", 19 },
+    }
+
+    Sky.names, Sky.hours = {}, {}
+    for _, phase in ipairs(PHASES) do
+        Sky.names[#Sky.names + 1] = phase[1]
+        Sky.hours[phase[1]] = phase[2]
+    end
+
+    function Sky.phaseOf(hour)
+        hour = hour % 24
+        if hour < 5 or hour >= 21 then return "Night" end
+        if hour < 8 then return "Dawn" end
+        if hour < 11 then return "Morning" end
+        if hour < 14 then return "Noon" end
+        if hour < 18 then return "Afternoon" end
+        return "Dusk"
+    end
+
+    local FIELDS = {
+        "ClockTime", "Brightness", "ExposureCompensation", "Ambient",
+        "OutdoorAmbient", "EnvironmentDiffuseScale", "EnvironmentSpecularScale",
+    }
+
+    local snapshot = {}
+    for _, field in ipairs(FIELDS) do
+        snapshot[field] = Lighting[field]
+    end
+
+    local baseName, baseValues
+
+    local function base()
+        local name = tostring(workspace:GetAttribute("Map"))
+        if name ~= baseName then
+            local map = moduleOf(MapDb, name)
+            local props = (map and type(map.Lighting) == "table" and map.Lighting.Properties) or {}
+            baseValues = {}
+            for _, field in ipairs(FIELDS) do
+                baseValues[field] = props[field] or snapshot[field]
+            end
+            baseName = name
+        end
+        return baseValues
+    end
+
+    local applied = false
+
+    function Sky.restore()
+        local values = base()
+        for _, field in ipairs(FIELDS) do
+            Lighting[field] = values[field]
+        end
+        applied = false
+    end
+
+    local function setNumber(field, want)
+        if math.abs(Lighting[field] - want) > 1e-4 then Lighting[field] = want end
+    end
+
+    local function setColor(field, want)
+        if Lighting[field] ~= want then Lighting[field] = want end
+    end
+
+    bind(RunService.Heartbeat, function()
+        if not (Runtime.active and CFG.worldLight) then
+            if applied then Sky.restore() end
+            return
+        end
+
+        local values = base()
+        local dark = CFG.wDark
+        applied = true
+
+        setNumber("ClockTime", CFG.wClock % 24)
+        setNumber("Brightness", CFG.wBright)
+        setNumber("ExposureCompensation", CFG.wExposure)
+        setNumber("EnvironmentDiffuseScale", values.EnvironmentDiffuseScale * (1 - dark))
+        setNumber("EnvironmentSpecularScale", values.EnvironmentSpecularScale * (1 - dark))
+        setColor("Ambient", values.Ambient:Lerp(BLACK, dark))
+        setColor("OutdoorAmbient", values.OutdoorAmbient:Lerp(BLACK, dark))
+    end)
+end
+
+do
+    local anchor = mk("Part", {
+        Name = "BOMB",
+        Anchored = true,
+        CanCollide = false,
+        CanQuery = false,
+        CanTouch = false,
+        CastShadow = false,
+        Transparency = 1,
+        Size = Vector3.new(0.2, 0.2, 0.2),
+    }, WorldBin)
+
+    local board = mk("BillboardGui", {
+        Name = "Tag",
+        AlwaysOnTop = true,
+        Size = UDim2.fromOffset(150, 64),
+        StudsOffsetWorldSpace = Vector3.new(0, 2.5, 0),
+        Enabled = false,
+    }, anchor)
+
+    mk("UIListLayout", {
+        FillDirection = Enum.FillDirection.Vertical,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+    }, board)
+
+    local lines = {}
+    for index, spec in ipairs({ { "C4", 22 }, { "", 18 }, { "", 14 } }) do
+        lines[index] = mk("TextLabel", {
+            Name = "L" .. index,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, spec[2] + 2),
+            LayoutOrder = index,
+            Font = Enum.Font.GothamBold,
+            TextSize = spec[2],
+            Text = spec[1],
+            TextColor3 = LIGHT_PINK,
+            TextStrokeColor3 = DARK_PINK,
+            TextStrokeTransparency = 0,
+        }, board)
+    end
+
+    local cachedRaw, cachedData
+
+    local function decode(raw)
+        if raw ~= cachedRaw then
+            local ok, data = pcall(function() return HttpService:JSONDecode(raw) end)
+            cachedRaw = raw
+            cachedData = (ok and type(data) == "table") and data or nil
+        end
+        return cachedData
+    end
+
+    local function planted()
+        for _, model in ipairs(Collection:GetTagged("Bomb")) do
+            local raw = model:GetAttribute("BombPlanted")
+            if type(raw) == "string"
+                and not model:GetAttribute("Defused")
+                and not model:GetAttribute("Exploded")
+            then
+                return model, raw
+            end
+        end
+        return nil, nil
+    end
+
+    local function pivotOf(instance)
+        if instance:IsA("BasePart") then return instance.Position end
+        if instance:IsA("Model") then
+            local ok, cf = pcall(function() return instance:GetPivot() end)
+            if ok and cf then return cf.Position end
+            local part = instance.PrimaryPart or instance:FindFirstChildWhichIsA("BasePart", true)
+            if part then return part.Position end
+        end
+        return nil
+    end
+
+    local function hide()
+        if board.Enabled then board.Enabled = false end
+    end
+
+    bind(RunService.Heartbeat, function()
+        if not (Runtime.active and CFG.bombInfo) then
+            return hide()
+        end
+
+        local model, raw = planted()
+        local data = model and decode(raw)
+        local position = data and pivotOf(model)
+        if not position then return hide() end
+
+        local planted0 = (typeof(data.Time) == "number") and data.Time or workspace:GetServerTimeNow()
+        local fuse = (typeof(data.TimeUntilExplode) == "number") and data.TimeUntilExplode or 40
+        local remaining = math.max(planted0 + math.max(fuse, 0.1) - workspace:GetServerTimeNow(), 0)
+
+        local from = LocalPlayer.Character and pivotOf(LocalPlayer.Character)
+        if not from then
+            local camera = workspace.CurrentCamera
+            from = camera and camera.CFrame.Position
+        end
+        local distance = from and (position - from).Magnitude or 0
+
+        anchor.Position = position
+        if CFG.bombShowTime then
+            lines[2].Text = string.format("%.1fs", remaining)
+        end
+        if CFG.bombShowDist then
+            lines[3].Text = string.format("%dm", math.floor(distance + 0.5))
+        end
+        if lines[2].Visible ~= CFG.bombShowTime then
+            lines[2].Visible = CFG.bombShowTime
+        end
+        if lines[3].Visible ~= CFG.bombShowDist then
+            lines[3].Visible = CFG.bombShowDist
+        end
+        if not board.Enabled then board.Enabled = true end
+    end)
+end
+
+local Spread = {}
+do
+    local SNIPER_FLOOR = { [2] = 6, [3] = 12 }
+
+    local inventory = moduleOf(Replicated:WaitForChild("Controllers"), "InventoryController")
+
+    function Spread.degrees()
+        if not inventory or type(inventory.peekCurrentEquippedForMovement) ~= "function" then
+            return nil
+        end
+
+        local ok, weapon = pcall(inventory.peekCurrentEquippedForMovement)
+        if not ok or type(weapon) ~= "table" or type(weapon.getSpread) ~= "function" then
+            return nil
+        end
+
+        local props = weapon.Properties
+        local sniper = type(props) == "table" and props.AimingOptions == "SniperScope"
+        local aiming = weapon.IsAiming == true
+
+        local spread
+        if sniper and type(weapon.Bullet) == "table" then
+            local bullet = weapon.Bullet
+            local config = bullet.ActiveSpreadConfig
+                or (type(bullet.Properties) == "table" and bullet.Properties.Spread)
+            local multiplier = (type(config) == "table" and config.MovementMultiplier) or 1
+            local floor = SNIPER_FLOOR[multiplier] or 15
+
+            if not aiming then
+                local okBase, resting = pcall(bullet.getBaseSpreadForConfig, bullet, config)
+                local okMove, moving = pcall(bullet.getMovementSpreadForConfig, bullet, config)
+                if okBase and okMove and type(resting) == "number" and type(moving) == "number" then
+                    spread = math.max(resting, floor) + moving
+                end
+            elseif weapon.Name == "AWP"
+                and (tick() - (tonumber(weapon.ScopeStartTick) or 0)) < 0.2
+            then
+                local okTrue, value = pcall(bullet.getTrueSpread, bullet)
+                if okTrue and type(value) == "number" then
+                    spread = math.max(value, floor)
+                end
+            end
+        end
+
+        if spread == nil then
+            local okSpread, value = pcall(weapon.getSpread, weapon)
+            if not okSpread or type(value) ~= "number" then return nil end
+            spread = value
+        end
+
+        return spread, weapon, aiming
+    end
+end
+
+do
+    local MIN_RADIUS = 2.5
+
+    local disc, stroke
+    do
+        local ok, crosshair = pcall(function()
+            return PlayerGui:WaitForChild("MainGui", 20)
+                :WaitForChild("Gameplay", 20)
+                :WaitForChild("Middle", 20)
+                :WaitForChild("Crosshair", 20)
+        end)
+        if ok and crosshair and crosshair:IsA("Frame") then
+            disc = own(mk("Frame", {
+                Name = "Spread",
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                BackgroundColor3 = LIGHT_BLUE,
+                ZIndex = 0,
+                Visible = false,
+            }, crosshair))
+            mk("UICorner", { Name = "Round", CornerRadius = UDim.new(0.5, 0) }, disc)
+            stroke = mk("UIStroke", {
+                Name = "Edge",
+                ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+                Thickness = 2,
+                Enabled = false,
+            }, disc)
+        end
+    end
+
+    local function radius()
+        local spread, _, aiming = Spread.degrees()
+        if spread == nil then return nil end
+        if aiming and spread <= 0 then return nil end
+
+        local camera = workspace.CurrentCamera
+        if not camera then return nil end
+
+        local viewport = camera.ViewportSize
+        local fov = (viewport.X > viewport.Y) and camera.FieldOfView or camera.MaxAxisFieldOfView
+        local half = math.clamp(spread / 2, 0, 30)
+        return math.max(half / math.max(fov, 1) * viewport.Y, MIN_RADIUS)
+    end
+
+    bind(RunService.RenderStepped, function()
+        if not disc then return end
+
+        if not (Runtime.active and CFG.spreadCircle) then
+            if disc.Visible then disc.Visible = false end
+            return
+        end
+
+        local px = radius()
+        if not px then
+            if disc.Visible then disc.Visible = false end
+            return
+        end
+
+        disc.Size = UDim2.fromOffset(px * 2, px * 2)
+        disc.BackgroundColor3 = PALETTE[CFG.scFill] or LIGHT_BLUE
+        disc.BackgroundTransparency = CFG.scAlpha
+        disc.Visible = true
+
+        local outline = PALETTE[CFG.scOutline]
+        if outline then
+            stroke.Color = outline
+            stroke.Enabled = true
+        else
+            stroke.Enabled = false
+        end
+    end)
+end
+
+do
+    local CONE_THETAS = 6
+    local CONE_RINGS = { 0.125, 0.375, 0.625, 0.875 }
+    local CONE_STEP = 2 * math.pi / CONE_THETAS
+    local PROBE_STEPS = 12
+    local DAMAGE_UNIT = 75
+
+    local GROUP = {
+        Head = "Head",
+        UpperTorso = "Torso", LowerTorso = "Torso", HumanoidRootPart = "Torso",
+        LeftUpperArm = "Arms", LeftLowerArm = "Arms", LeftHand = "Arms",
+        RightUpperArm = "Arms", RightLowerArm = "Arms", RightHand = "Arms",
+        LeftUpperLeg = "Legs", LeftLowerLeg = "Legs", LeftFoot = "Legs",
+        RightUpperLeg = "Legs", RightLowerLeg = "Legs", RightFoot = "Legs",
+    }
+
+    local armor = setmetatable({}, { __mode = "k" })
+
+    local function armoured(player, group)
+        if group == "Legs" then return false end
+        local raw = player:GetAttribute("Armor")
+        if type(raw) ~= "string" then return false end
+        local entry = armor[player]
+        if entry == nil or entry.raw ~= raw then
+            entry = { raw = raw, vest = false, helmet = false }
+            local ok, decoded = pcall(HttpService.JSONDecode, HttpService, raw)
+            if ok and type(decoded) == "table" and (tonumber(decoded.Health) or 0) > 0 then
+                entry.vest = true
+                entry.helmet = type(decoded.Type) == "string"
+                    and string.find(decoded.Type, "Helmet") ~= nil
+            end
+            armor[player] = entry
+        end
+        if group == "Head" then return entry.helmet end
+        return entry.vest
+    end
+
+    local function estimate(props, part, player, distance, walls)
+        if type(props) ~= "table" or type(props.DamagePerPart) ~= "table" then return nil end
+        local group = GROUP[part.Name]
+        if group == nil then return nil end
+        local value = tonumber(props.DamagePerPart[group])
+        if not value then return nil end
+        local falloff = tonumber(props.RangeModifier)
+        if falloff and falloff > 0 and falloff < 1 then
+            value = value * falloff ^ (distance / DAMAGE_UNIT)
+        end
+        if armoured(player, group) then
+            value = value * (tonumber(props.ArmorPenetration) or 1)
+        end
+        if walls > 0 then
+            value = value * (tonumber(props.WallbangMultiplier) or 1) ^ walls
+        end
+        return value
+    end
+
+    local function deflect(dir, theta, phi)
+        local unit = dir.Magnitude > 0 and dir.Unit or Vector3.new(0, 0, 1)
+        local up = math.abs(unit.Y) > 0.9999 and Vector3.new(1, 0, 0) or Vector3.new(0, 1, 0)
+        local base = CFrame.lookAlong(Vector3.new(0, 0, 0), unit, up)
+        return (base * CFrame.Angles(0, 0, theta) * CFrame.Angles(phi, 0, 0)).LookVector
+    end
+
+    local function victim(instance)
+        local headshot = Target.classify(instance)
+        if headshot == nil then return nil end
+        local player = Players:GetPlayerFromCharacter(instance.Parent)
+        if not player then return nil end
+        if CFG.tbEnemies and not Target.isEnemy(player) then return nil end
+        return headshot, player
+    end
+
+    local probeParams = RaycastParams.new()
+    probeParams.FilterType = Enum.RaycastFilterType.Exclude
+    probeParams.IgnoreWater = false
+    probeParams.CollisionGroup = "Bullet"
+
+    local function probe(origin, dir, range, ignore, props, wall)
+        probeParams.FilterDescendantsInstances = ignore
+        local pen = wall and (tonumber(props.Penetration) or 0) or 0
+        local used, walls = nil, 0
+        for _ = 1, PROBE_STEPS do
+            local result = workspace:Raycast(origin, dir * range, probeParams)
+            if not result then return nil end
+            local instance = result.Instance
+            if not Pierce.passThrough(instance) then
+                local headshot, player = victim(instance)
+                if headshot ~= nil then
+                    return headshot, estimate(props, instance, player, result.Distance, walls), walls
+                end
+                if not wall then return nil end
+                if instance:IsDescendantOf(Characters) then return nil end
+                local budget, key = Pierce.budget(instance, pen)
+                local thick = Pierce.thickness(result.Position, dir, instance)
+                if thick == nil then return nil end
+                used = used or {}
+                local total = (used[key] or 0) + thick
+                if total > budget then return nil end
+                used[key] = total
+                walls = walls + 1
+            end
+            probeParams:AddToFilter(instance)
+        end
+        return nil
+    end
+
+    local press, release
+    do
+        local function global(name)
+            local ok, value = pcall(function()
+                if getgenv then return getgenv()[name] end
+                return nil
+            end)
+            if ok and type(value) == "function" then return value end
+            local okLocal, localValue = pcall(function() return _G[name] end)
+            if okLocal and type(localValue) == "function" then return localValue end
+            return nil
+        end
+        press, release = global("mouse1press"), global("mouse1release")
+        if not (press and release) then
+            local ok, virtual = pcall(game.GetService, game, "VirtualInputManager")
+            if ok and virtual then
+                local function send(down)
+                    local camera = workspace.CurrentCamera
+                    local viewport = camera and camera.ViewportSize or Vector2.new(1920, 1080)
+                    virtual:SendMouseButtonEvent(viewport.X * 0.5, viewport.Y * 0.5, 0, down, game, false)
+                end
+                press = function() send(true) end
+                release = function() send(false) end
+            end
+        end
+    end
+
+    local armedAt
+    local firing = false
+
+    local function idle(reason)
+        armedAt = nil
+        Runtime.chance, Runtime.guard, Runtime.part, Runtime.reason = 0, false, nil, reason
+        Runtime.damage, Runtime.walls = 0, 0
+    end
+
+    local function hold(reason)
+        armedAt = nil
+        Runtime.reason = reason
+    end
+
+    bind(RunService.RenderStepped, function()
+        if not (Runtime.active and CFG.triggerbot) then
+            if armedAt ~= nil or Runtime.reason ~= nil or Runtime.part ~= nil then
+                idle(nil)
+                Runtime.spread = nil
+            end
+            return
+        end
+
+        if Menu.Visible then return idle("menu open") end
+        if LocalPlayer:GetAttribute("IsPlayerChatting") then return idle("typing") end
+        if not Target.character(LocalPlayer) then return idle("not alive") end
+        if not (press and release) then return idle("no input method") end
+        if UserInput:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+            return idle("manual fire")
+        end
+
+        local spread, weapon = Spread.degrees()
+        Runtime.spread = spread
+        if not spread then return idle("no weapon") end
+        if type(weapon.Bullet) ~= "table" then return idle("not a gun") end
+        local rounds = tonumber(weapon.Rounds)
+        if rounds and rounds <= 0 then return idle("empty") end
+        if weapon.IsReloading == true then return idle("reloading") end
+
+        local camera = workspace.CurrentCamera
+        if not camera then return idle("no camera") end
+        local viewport = camera.ViewportSize
+        local ray = camera:ViewportPointToRay(viewport.X * 0.5, viewport.Y * 0.5)
+        local dir = ray.Direction.Magnitude > 0 and ray.Direction.Unit or Vector3.new(0, 0, 1)
+
+        local props = type(weapon.Bullet.Properties) == "table" and weapon.Bullet.Properties or nil
+        local range = (props and tonumber(props.Range)) or 500
+        local wall = CFG.tbWall and props ~= nil
+        local floor = tonumber(CFG.tbMinDmg) or 0
+        local ignore = Pierce.ignore()
+
+        local headshot, damage, walls = probe(ray.Origin, dir, range, ignore, props, wall)
+        if headshot == nil then return idle("no target") end
+        if not Target.wants(CFG.tbWhere, headshot) then return idle("wrong part") end
+        Runtime.part = headshot and "HEAD" or "BODY"
+        Runtime.damage, Runtime.walls = damage or 0, walls
+
+        if walls > 0 and damage and damage < floor then
+            Runtime.chance, Runtime.guard = 0, false
+            return hold("weak wallbang")
+        end
+
+        local maxPhi = math.rad(math.min(spread, 69) * 0.5)
+        local chance, guard
+
+        local function lands(candidate)
+            local hit, value, crossed = probe(ray.Origin, candidate, range, ignore, props, wall)
+            if hit == nil or not Target.wants(CFG.tbWhere, hit) then return false end
+            if crossed > 0 and value and value < floor then return false end
+            return true
+        end
+
+        if maxPhi <= 0 then
+            chance, guard = 1, true
+        else
+            local pass, total = 0, 0
+            for index, fraction in ipairs(CONE_RINGS) do
+                local phi = maxPhi * fraction
+                local offset = (index - 1) * CONE_STEP / #CONE_RINGS
+                for k = 1, CONE_THETAS do
+                    total = total + 1
+                    if lands(deflect(dir, offset + (k - 1) * CONE_STEP, phi)) then
+                        pass = pass + 1
+                    end
+                end
+            end
+            chance = total > 0 and pass / total or 0
+
+            guard = (pass == total)
+            if guard then
+                local rim = CONE_THETAS * 2
+                local rimStep = 2 * math.pi / rim
+                for k = 1, rim do
+                    if not lands(deflect(dir, (k - 1) * rimStep, maxPhi)) then
+                        guard = false
+                        break
+                    end
+                end
+            end
+        end
+
+        Runtime.chance, Runtime.guard = chance, guard
+        if chance < 0.5 then return hold("low chance") end
+
+        local now = os.clock()
+        if armedAt == nil then armedAt = now end
+        local wait = (tonumber(CFG.tbDelay) or 0) / 1000
+        if now - armedAt < wait then
+            Runtime.reason = string.format("armed %dms", math.floor((now - armedAt) * 1000 + 0.5))
+            return
+        end
+        Runtime.reason = nil
+        if firing then return end
+
+        firing = true
+        armedAt = nil
+        Runtime.shots = Runtime.shots + 1
+        task.spawn(function()
+            pcall(press)
+            pcall(function()
+                RunService.RenderStepped:Wait()
+                RunService.RenderStepped:Wait()
+            end)
+            pcall(release)
+            firing = false
+        end)
+    end)
+end
+
+local HitSound = {}
+do
+    local RING = 4
+    local host = own(mk("Folder", { Name = suffix("HS_") }, SoundService))
+    local rings, cursor = {}, {}
+
+    for _, pack in ipairs(HIT_PACKS) do
+        local ring = {}
+        for index = 1, RING do
+            ring[index] = mk("Sound", {
+                Name = pack.name .. index,
+                SoundId = pack.id,
+                Volume = CFG.hitVolume,
+                RollOffMode = Enum.RollOffMode.Linear,
+            }, host)
+        end
+        rings[pack.name] = ring
+        cursor[pack.name] = 0
+    end
+
+    task.spawn(function()
+        local ids = {}
+        for _, pack in ipairs(HIT_PACKS) do ids[#ids + 1] = pack.id end
+        pcall(function() Content:PreloadAsync(ids) end)
+    end)
+
+    function HitSound.play()
+        local ring = rings[CFG.hitPack]
+        if not ring then return end
+        local index = (cursor[CFG.hitPack] % RING) + 1
+        cursor[CFG.hitPack] = index
+        local sound = ring[index]
+        sound.Volume = CFG.hitVolume
+        sound.TimePosition = 0
+        sound:Play()
+    end
+end
+
+local ShotFeed = { node = nil, original = nil, hook = nil }
+do
+    pcall(function()
+        local remotes = require(Replicated.Database.Security.Remotes)
+        local node = remotes.Inventory.ShootWeapon
+        local original = node.Send
+
+        local function hook(packet, ...)
+            pcall(function()
+                if not Runtime.active or type(packet) ~= "table" then return end
+                local bullets = packet.Bullets
+                if type(bullets) ~= "table" then return end
+
+                for _, bullet in ipairs(bullets) do
+                    local origin = bullet.Origin
+                    local hits = type(bullet.Hits) == "table" and bullet.Hits or {}
+
+                    if CFG.bulletTrace and typeof(origin) == "Vector3" then
+                        local last = hits[#hits]
+                        local finish = last and last.Position
+                        if typeof(finish) == "Vector3" then
+                            Tracer.fire(origin, finish, (finish - origin).Magnitude)
+                        elseif typeof(bullet.Direction) == "Vector3" then
+                            Tracer.fire(origin, bullet.Direction, 500)
+                        end
+                    end
+
+                    if CFG.hitSound then
+                        local landed, headshot = false, false
+                        for _, entry in ipairs(hits) do
+                            local head = Target.classify(entry.Instance)
+                            if head ~= nil then
+                                landed = true
+                                if head then headshot = true end
+                            end
+                        end
+                        if landed and Target.wants(CFG.hitWhere, headshot) then HitSound.play() end
+                    end
+
+                    if CFG.bulletImpacts then pcall(Impacts.record, hits) end
+                end
+            end)
+
+            return original(packet, ...)
+        end
+
+        node.Send = hook
+        ShotFeed.node, ShotFeed.original, ShotFeed.hook = node, original, hook
+    end)
+
+    function ShotFeed.restore()
+        if ShotFeed.node and ShotFeed.original and ShotFeed.node.Send == ShotFeed.hook then
+            pcall(function() ShotFeed.node.Send = ShotFeed.original end)
+        end
+    end
+end
+
+local Bhop = { owner = nil, original = nil, hook = nil }
+do
+    local movement
+
+    pcall(function()
+        local localChar = require(Replicated.Controllers.CharacterController.LocalCharacter)
+        movement = localChar.getCurrentCharacter
+
+        if not table.isfrozen(localChar) and type(localChar.jump) == "function" then
+            local original = localChar.jump
+            local function hook(held, ...)
+                if held == true then
+                    Runtime.jumpHeld = true
+                elseif held == false then
+                    Runtime.jumpHeld = false
+                end
+                return original(held, ...)
+            end
+            localChar.jump = hook
+            Bhop.owner, Bhop.original, Bhop.hook = localChar, original, hook
+        end
+    end)
+
+    local key = Enum.KeyCode.Space
+    pcall(function()
+        local data = require(Replicated.Controllers.DataController)
+        local settings = data.Get(LocalPlayer, "Settings.Keyboard/Mouse")
+        settings = type(settings) == "table" and settings["Movement Keys"]
+        settings = type(settings) == "table" and settings.Jump
+        settings = type(settings) == "table" and settings.Computer
+        local name = type(settings) == "string" and settings:match("KeyCode%.([%w_]+)")
+        if name and Enum.KeyCode[name] then key = Enum.KeyCode[name] end
+    end)
+
+    local function wantsJump()
+        if UserInput:IsKeyDown(key) then return true end
+        if not (UserInput.GamepadEnabled or UserInput.TouchEnabled) then return false end
+        return Runtime.jumpHeld
+    end
+
+    function Bhop.release()
+        if not movement then return end
+        pcall(function()
+            local state = movement()
+            if type(state) == "table" then state.JumpInputDown = wantsJump() end
+        end)
+    end
+
+    function Bhop.restore()
+        if Bhop.owner and Bhop.original and Bhop.owner.jump == Bhop.hook then
+            pcall(function() Bhop.owner.jump = Bhop.original end)
+        end
+    end
+
+    local engaged = false
+
+    bind(RunService.Heartbeat, function()
+        if not (Runtime.active and CFG.autoBhop and movement) then
+            if engaged then
+                engaged = false
+                Bhop.release()
+            end
+            return
+        end
+        engaged = true
+
+        local ok, state = pcall(movement)
+        if not (ok and type(state) == "table") then return end
+        if not wantsJump() then return end
+
+        state.JumpInputDown = false
+        if state.OnGround then state.JumpPulsePending = true end
+    end)
+end
+
+local navBox = NavBar:WaitForChild("Top"):WaitForChild("Buttons")
+local navSource = navBox:WaitForChild("Settings")
+
+local navButton = own(navSource:Clone())
+navButton.Name = "UnnamedWard"
+navButton.LayoutOrder = navSource.LayoutOrder
+navButton.Parent = navBox
+navButton.Icon.Image = ASSET.Nav
+navButton.Icon.ImageColor3 = LIGHT_PINK
+
+for _, child in ipairs(navButton:GetChildren()) do
+    if child.Name == "Display" then child:Destroy() end
+end
+
+local panel = own(SettingsPane:Clone())
+panel.Name = "UnnamedWardPanel"
+panel.Visible = false
+panel.Parent = Menu
+
+for _, name in ipairs({ "Share", "Reset" }) do
+    local child = panel:FindFirstChild(name)
+    if child then child:Destroy() end
+end
+
+local pageBox = panel.Frame.List
+local tabBox = panel.Top.Categories
+local TAIL = 160
+local TPL = {}
+
+do
+    local sourcePage = pageBox:WaitForChild("Video")
+    for _, child in ipairs(pageBox:GetChildren()) do
+        if child:IsA("GuiObject") and child ~= sourcePage then child:Destroy() end
+    end
+
+    local scroll = sourcePage.Bottom.Scroll
+    TPL.section = scroll:WaitForChild("Category_Presets"):Clone()
+    TPL.row = scroll:WaitForChild("Global Shadows"):Clone()
+    TPL.divider = scroll:WaitForChild("Divider"):Clone()
+    TPL.segment = TPL.row.Right.Switch.Selection.Frame:WaitForChild("1"):Clone()
+
+    for _, child in ipairs(scroll:GetChildren()) do
+        if child:IsA("GuiObject") then child:Destroy() end
+    end
+
+    TPL.page = sourcePage:Clone()
+    sourcePage:Destroy()
+
+    local sourceTab = tabBox:WaitForChild("Video")
+    for _, child in ipairs(tabBox:GetChildren()) do
+        if child:IsA("GuiObject") and child ~= sourceTab then child:Destroy() end
+    end
+    TPL.tab = sourceTab:Clone()
+    sourceTab:Destroy()
+end
+
+do
+    local function near(a, b)
+        return math.abs(a.R - b.R) < 0.02
+            and math.abs(a.G - b.G) < 0.02
+            and math.abs(a.B - b.B) < 0.02
+    end
+
+    for _, child in ipairs(SettingsPane.Top.Categories:GetChildren()) do
+        local title = child:IsA("GuiObject") and child:FindFirstChild("Title")
+        if title and title:IsA("TextLabel") then
+            if near(child.BackgroundColor3, TAB.On) then
+                TAB.TextOn = title.TextColor3
+            else
+                TAB.TextOff = title.TextColor3
+            end
+        end
+    end
+end
+
+local repaint = {}
+local catalog = {}
+
+local function refresh(key)
+    if key then
+        if repaint[key] then repaint[key]() end
+        return
+    end
+    for _, fn in pairs(repaint) do pcall(fn) end
+end
+
+local function selectTab(name)
+    for _, entry in ipairs(catalog) do
+        local on = entry.name == name
+        entry.page.Visible = on
+        entry.tab.BackgroundColor3 = on and TAB.On or TAB.Off
+        if entry.title then
+            entry.title.TextColor3 = on and TAB.TextOn or TAB.TextOff
+        end
+    end
+end
+
+local function shapeBar(bar, count)
+    for _, child in ipairs(bar:GetChildren()) do
+        if child:IsA("GuiObject") then child:Destroy() end
+    end
+    for index = 1, count do
+        local segment = TPL.segment:Clone()
+        segment.Name = tostring(index)
+        segment.LayoutOrder = index
+        segment.Size = UDim2.new(1 / count, -3, 1, 0)
+        segment.BackgroundColor3 = SWITCH.Dim
+        segment.Parent = bar
+    end
+end
+
+local function paintBar(bar, count, isLit)
+    for index = 1, count do
+        local segment = bar:FindFirstChild(tostring(index))
+        if segment then
+            segment.BackgroundColor3 = isLit(index) and SWITCH.Lit or SWITCH.Dim
+        end
+    end
+end
+
+local Page = {}
+Page.__index = Page
+
+function Page.new(name, caption, heading, blurb)
+    local page = TPL.page:Clone()
+    page.Name = name
+    page.Visible = false
+    page.Header.Heading.Header.Text = heading
+    page.Header.Title.Text = blurb
+    page.Parent = pageBox
+
+    local scroll = page.Bottom.Scroll
+    mk("Frame", {
+        Name = "Tail",
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, TAIL),
+        LayoutOrder = 10000,
+    }, scroll)
+
+    local tab = TPL.tab:Clone()
+    tab.Name = name
+    tab.LayoutOrder = #catalog + 1
+    tab.Visible = true
+    tab.Parent = tabBox
+
+    local title = tab:FindFirstChild("Title")
+    if not (title and title:IsA("TextLabel")) then
+        title = tab:FindFirstChildWhichIsA("TextLabel", true)
+    end
+    if title then title.Text = caption end
+
+    bind(tab.Activated, function() selectTab(name) end)
+
+    local self = setmetatable({
+        name = name, page = page, tab = tab, title = title,
+        scroll = scroll, order = 0,
+    }, Page)
+
+    catalog[#catalog + 1] = self
+    return self
+end
+
+function Page:next()
+    self.order = self.order + 1
+    return self.order
+end
+
+function Page:section(text)
+    local label = TPL.section:Clone()
+    label.Name = "S_" .. text
+    label.Text = text
+    label.LayoutOrder = self:next()
+    label.Parent = self.scroll
+    return label
+end
+
+function Page:divider()
+    local line = TPL.divider:Clone()
+    line.LayoutOrder = self:next()
+    line.Parent = self.scroll
+    return line
+end
+
+function Page:widget(text)
+    local row = TPL.row:Clone()
+    row.Name = text
+    row.Left.Label.Text = text
+    row.LayoutOrder = self:next()
+    row.Parent = self.scroll
+    local switch = row.Right.Switch
+    return row, switch, switch.Selection.Title, switch.Selection.Frame
+end
+
+function Page:toggle(key, text)
+    local row, switch, title, bar = self:widget(text)
+    shapeBar(bar, 2)
+
+    local function paint()
+        local on = CFG[key] and true or false
+        title.Text = on and "ON" or "OFF"
+        paintBar(bar, 2, function(index) return (index == 2) == on end)
+    end
+
+    local function flip()
+        CFG[key] = not CFG[key]
+        paint()
+    end
+
+    bind(switch.Left.Activated, flip)
+    bind(switch.Right.Activated, flip)
+    bind(switch.Activated, flip)
+
+    repaint[key] = paint
+    paint()
+    self:divider()
+    return row
+end
+
+function Page:choice(key, text, options)
+    local row, switch, title, bar = self:widget(text)
+    local count = #options
+    shapeBar(bar, count)
+
+    local function indexOf()
+        for index, option in ipairs(options) do
+            if option == CFG[key] then return index end
+        end
+        return 1
+    end
+
+    local function paint()
+        local index = indexOf()
+        title.Text = string.upper(options[index])
+        paintBar(bar, count, function(slot) return slot == index end)
+    end
+
+    local function step(delta)
+        CFG[key] = options[((indexOf() - 1 + delta) % count) + 1]
+        paint()
+    end
+
+    bind(switch.Left.Activated, function() step(-1) end)
+    bind(switch.Right.Activated, function() step(1) end)
+    bind(switch.Activated, function() step(1) end)
+
+    repaint[key] = paint
+    paint()
+    self:divider()
+    return row
+end
+
+function Page:slider(key, text, min, max, stepBy, format, segments)
+    segments = segments or 10
+    local row, switch, title, bar = self:widget(text)
+    shapeBar(bar, segments)
+
+    local function paint()
+        local value = CFG[key]
+        title.Text = format(value)
+        local lit = math.floor(((value - min) / (max - min)) * segments + 0.5)
+        if lit < 1 and min > 0 then lit = 1 end
+        paintBar(bar, segments, function(index) return index <= lit end)
+    end
+
+    local function step(delta)
+        local value = CFG[key] + delta * stepBy
+        CFG[key] = math.clamp(math.floor(value / stepBy + 0.5) * stepBy, min, max)
+        paint()
+    end
+
+    bind(switch.Left.Activated, function() step(-1) end)
+    bind(switch.Right.Activated, function() step(1) end)
+
+    repaint[key] = paint
+    paint()
+    self:divider()
+    return row
+end
+
+function Page:list(key, text, values, format)
+    local row, switch, title, bar = self:widget(text)
+    local count = #values
+    shapeBar(bar, count)
+
+    local function indexOf()
+        for index, value in ipairs(values) do
+            if value == CFG[key] then return index end
+        end
+        return 1
+    end
+
+    local function paint()
+        local index = indexOf()
+        title.Text = format(values[index])
+        paintBar(bar, count, function(slot) return slot <= index end)
+    end
+
+    local function step(delta)
+        CFG[key] = values[math.clamp(indexOf() + delta, 1, count)]
+        paint()
+    end
+
+    bind(switch.Left.Activated, function() step(-1) end)
+    bind(switch.Right.Activated, function() step(1) end)
+
+    repaint[key] = paint
+    paint()
+    self:divider()
+    return row
+end
+
+function Page:pad()
+    local scroll = self.scroll
+    local tail = scroll:FindFirstChild("Tail")
+    local layout = scroll:FindFirstChildWhichIsA("UIListLayout")
+    if not (tail and layout) then return end
+    for _ = 1, 4 do
+        task.wait()
+        local rows = layout.AbsoluteContentSize.Y - tail.AbsoluteSize.Y
+        tail.Size = UDim2.new(1, 0, 0,
+            math.floor(math.max(TAIL, scroll.AbsoluteSize.Y + TAIL - rows)))
+    end
+end
+
+local BLURB = {
+    players = "UnnamedWard - Outline players through the map and read what they are holding at a glance. "
+        .. "Targets are picked from live characters only, so anyone dead or unspawned is skipped "
+        .. "automatically. Press H at any time to switch highlighting on or off without opening this menu.",
+
+    misc = "UnnamedWard - Bullet Trace draws the flight path of your own shots, so you can see after the fact exactly "
+        .. "where a burst went and how far the spray walked off your aim. Hit Sound plays a cue the "
+        .. "moment one of your bullets lands, and can be limited to headshots. AutoBhop re-jumps for "
+        .. "you the instant you touch the ground, for as long as you hold your jump key. Wallbang "
+        .. "Indicator puts a plate on the surface under your crosshair - green if your gun punches "
+        .. "through it, red if it does not - using the game's own material and penetration numbers.",
+
+    world = "UnnamedWard - Override the map's own lighting: pick any hour on a 24-hour clock, then trim brightness and "
+        .. "exposure to taste. Darkness pulls the map's ambient light down as well, and that is the one "
+        .. "that actually makes midnight look like midnight - on its own the hour barely dims a map, "
+        .. "because every map sets a bright ambient floor. Bomb Info puts a yellow C4 label on the "
+        .. "planted bomb with the countdown and your distance to it - either line can be switched off "
+        .. "on its own - read off the same replicated value the game uses to drive its own beeps. The "
+        .. "game never shows you that number. Bullet Impacts marks where a shot went: a red cube at the "
+        .. "point your bullet actually reported landing, a blue one where your crosshair was pointing "
+        .. "when it left. Both are see-through with an outline box so you can find them from any angle, "
+        .. "and the gap between the pair is the spread that shot picked up. Either colour can be shown "
+        .. "on its own.",
+
+    aim = "UnnamedWard - Triggerbot clicks for you the moment your crosshair is on somebody. It never touches the "
+        .. "weapon: it casts the same ray the gun will and then presses your own mouse button, so the "
+        .. "shot is an ordinary shot. Before firing it samples the spread cone your bullet could land "
+        .. "anywhere inside and only pulls when most of that cone is still on the part you picked, which "
+        .. "is why it holds off when you are moving or spraying. Wallbang lets it shoot through cover "
+        .. "using the game's own material and penetration numbers, and the minimum damage below it is "
+        .. "the floor a shot through a wall has to clear - shots that cross nothing ignore it. Reaction "
+        .. "delay waits that long after acquiring before clicking; the gate is re-checked on the frame "
+        .. "it fires, so a long delay never shoots at a target that has moved off.",
+}
+
+local pagePlayers = Page.new("Players", "PLAYERS", "PLAYERS", BLURB.players)
+
+pagePlayers:section("TARGETS")
+pagePlayers:divider()
+pagePlayers:toggle("enabled", "Highlight players")
+pagePlayers:toggle("enemiesOnly", "Enemies only")
+pagePlayers:slider("maxDistance", "Max distance", 0, 500, 25, Format.reach, 20)
+
+pagePlayers:section("APPEARANCE")
+pagePlayers:divider()
+pagePlayers:choice("colorMode", "Colour source", MODE_NAMES)
+pagePlayers:choice("colorName", "Fixed colour", COLOR_NAMES)
+pagePlayers:slider("fill", "Fill strength", 0, 1, 0.05, Format.percent, 20)
+pagePlayers:slider("outline", "Outline strength", 0, 1, 0.05, Format.percent, 20)
+pagePlayers:toggle("throughWalls", "See through walls")
+
+local pageMisc = Page.new("Misc", "MISC", "MISC", BLURB.misc)
+
+pageMisc:section("BULLET TRACE")
+pageMisc:divider()
+pageMisc:toggle("bulletTrace", "Bullet Trace")
+pageMisc:choice("traceColor", "Trace colour", TRACE_NAMES)
+pageMisc:slider("traceTime", "Trace duration", 0.5, 10, 0.5, Format.seconds, 19)
+
+pageMisc:section("HIT SOUND")
+pageMisc:divider()
+pageMisc:toggle("hitSound", "Hit Sound")
+pageMisc:choice("hitPack", "Sound", HIT_NAMES)
+pageMisc:choice("hitWhere", "Play on", HIT_SCOPE)
+pageMisc:slider("hitVolume", "Volume", 0, 1, 0.05, Format.percent, 20)
+
+pageMisc:section("AUTOBHOP")
+pageMisc:divider()
+pageMisc:toggle("autoBhop", "AutoBhop")
+
+pageMisc:section("WALLBANG")
+pageMisc:divider()
+pageMisc:toggle("wallbang", "Wallbang indicator")
+pageMisc:slider("wbSize", "Marker size", 0.4, 3, 0.2, Format.studs, 13)
+pageMisc:slider("wbAlpha", "Marker fade", 0.1, 0.9, 0.1, Format.percent, 8)
+
+pageMisc:section("SPREAD CIRCLE")
+pageMisc:divider()
+pageMisc:toggle("spreadCircle", "Spread circle")
+pageMisc:choice("scFill", "Fill colour", FILL_NAMES)
+pageMisc:slider("scAlpha", "Fill fade", 0, 0.9, 0.05, Format.percent, 18)
+pageMisc:choice("scOutline", "Outline colour", OUTLINE_NAMES)
+
+local pageWorld = Page.new("World", "WORLD", "WORLD", BLURB.world)
+
+pageWorld:section("LIGHTING")
+pageWorld:divider()
+pageWorld:toggle("worldLight", "Override map lighting")
+pageWorld:choice("wPreset", "Time preset", Sky.names)
+pageWorld:slider("wClock", "Hour", 0, 24, 1, function(v)
+    return string.format("%02d:00  %s", math.floor(v) % 24, string.upper(Sky.phaseOf(v)))
+end, 24)
+pageWorld:slider("wBright", "Brightness", 0, 8, 0.5, Format.oneDp, 16)
+pageWorld:slider("wExposure", "Exposure", -2, 2, 0.25, Format.signed, 16)
+pageWorld:slider("wDark", "Darkness", 0, 0.95, 0.05, Format.percent, 19)
+
+pageWorld:section("BOMB INFO")
+pageWorld:divider()
+pageWorld:toggle("bombInfo", "Bomb info")
+pageWorld:toggle("bombShowTime", "Show timer")
+pageWorld:toggle("bombShowDist", "Show distance")
+
+pageWorld:section("BULLET IMPACTS")
+pageWorld:divider()
+pageWorld:toggle("bulletImpacts", "Bullet impacts")
+pageWorld:choice("biMode", "Show", BI_MODES)
+pageWorld:slider("biTime", "Impact time", 0.5, 5, 0.5, Format.seconds, 10)
+
+local pageAim = Page.new("Aim", "AIM", "AIM", BLURB.aim)
+
+pageAim:section("TRIGGERBOT")
+pageAim:divider()
+pageAim:toggle("triggerbot", "Triggerbot")
+pageAim:choice("tbWhere", "Target", HIT_SCOPE)
+pageAim:toggle("tbEnemies", "Enemies only")
+pageAim:toggle("tbWall", "Wallbang")
+pageAim:slider("tbMinDmg", "Min wall damage", 5, 100, 5, Format.health, 20)
+pageAim:list("tbDelay", "Reaction delay", TB_DELAYS, function(v)
+    if v <= 0 then return "INSTANT" end
+    return string.format("%d MS", v)
+end)
+
+selectTab("Players")
+
+task.spawn(function()
+    pagePlayers:pad()
+    pageMisc:pad()
+    pageWorld:pad()
+    pageAim:pad()
+end)
+
+task.spawn(function()
+    local last = CFG.wPreset
+    while Runtime.active do
+        if CFG.wPreset ~= last then
+            last = CFG.wPreset
+            CFG.wClock = Sky.hours[CFG.wPreset] or CFG.wClock
+            refresh("wClock")
+        elseif Sky.phaseOf(CFG.wClock) ~= CFG.wPreset then
+            CFG.wPreset = Sky.phaseOf(CFG.wClock)
+            last = CFG.wPreset
+            refresh("wPreset")
+        end
+        task.wait(0.1)
+    end
+end)
+
+local SCREENS = {
+    "Dashboard", "GameDashboard", "Inventory", "Loadout", "Gamemodes",
+    "Settings", "Store", "Career", "Progression", "GlobalMarketPlace",
+}
+
+local open = false
+local stash = {}
+
+local function anyScreenUp()
+    for _, name in ipairs(SCREENS) do
+        local screen = Menu:FindFirstChild(name)
+        if screen and screen:IsA("GuiObject") and screen.Visible then return true end
+    end
+    return false
+end
+
+local function setOpen(value)
+    open = value and true or false
+
+    if open then
+        table.clear(stash)
+        for _, name in ipairs(SCREENS) do
+            local screen = Menu:FindFirstChild(name)
+            if screen and screen:IsA("GuiObject") and screen.Visible then
+                stash[#stash + 1] = screen
+                screen.Visible = false
+            end
+        end
+    elseif #stash > 0 then
+        local hidden = stash
+        stash = {}
+        task.defer(function()
+            if anyScreenUp() then return end
+            for _, screen in ipairs(hidden) do
+                if screen.Parent then screen.Visible = true end
+            end
+        end)
+    end
+
+    panel.Visible = open
+end
+
+bind(navButton.Activated, function() setOpen(not open) end)
+
+for _, holder in ipairs({ NavBar:FindFirstChild("Top"), NavBar:FindFirstChild("Bottom") }) do
+    local box = holder and holder:FindFirstChild("Buttons")
+    if box then
+        for _, button in ipairs(box:GetChildren()) do
+            if button:IsA("GuiButton") and button ~= navButton then
+                bind(button.Activated, function() setOpen(false) end)
+            end
+        end
+    end
+end
+
+bind(Menu:GetPropertyChangedSignal("Visible"), function()
+    if not Menu.Visible then setOpen(false) end
+end)
+
+-- Mobile-friendly H key alternative - use touch on a small floating button
+local mobileToggle = own(mk("TextButton", {
+    Name = "UnnamedWardMobileToggle",
+    Parent = GuiHost,
+    Size = UDim2.fromOffset(60, 60),
+    Position = UDim2.new(0.5, -30, 0, 10),
+    BackgroundColor3 = LIGHT_PINK,
+    BackgroundTransparency = 0.3,
+    Text = "UW",
+    TextColor3 = Color3.fromRGB(80, 40, 60),
+    TextSize = 24,
+    Font = Enum.Font.GothamBold,
+    Visible = UserInput.TouchEnabled,
+    ZIndex = 10,
+    AutoButtonColor = true,
+}))
+
+bind(mobileToggle.MouseButton1Click, function()
+    CFG.enabled = not CFG.enabled
+    refresh("enabled")
+end)
+
+bind(UserInput.InputBegan, function(input, busy)
+    if busy then return end
+    if input.KeyCode == Enum.KeyCode.H then
+        CFG.enabled = not CFG.enabled
+        refresh("enabled")
+    end
+end)
+
+_G.BSHL_UNLOAD = function()
+    Runtime.active = false
+
+    CFG.enabled = false
+    CFG.bulletTrace = false
+    CFG.hitSound = false
+    CFG.autoBhop = false
+    CFG.wallbang = false
+    CFG.spreadCircle = false
+    CFG.worldLight = false
+    CFG.bombInfo = false
+    CFG.bulletImpacts = false
+    CFG.triggerbot = false
+
+    pcall(Sky.restore)
+    pcall(setOpen, false)
+    pcall(Bhop.release)
+
+    ShotFeed.restore()
+    Bhop.restore()
+
+    for _, connection in ipairs(connections) do
+        pcall(function() connection:Disconnect() end)
+    end
+    Highlight.clear()
+    for _, instance in ipairs(owned) do
+        pcall(function() instance:Destroy() end)
+    end
+
+    table.clear(connections)
+    _G.BSHL_UNLOAD = nil
+    _G.BSHL = nil
+end
+
+_G.BSHL = {
+    CFG = CFG,
+    Panel = panel,
+    Button = navButton,
+    MobileToggle = mobileToggle,
+    Tab = function(name) selectTab(name) end,
+    Open = function(value) setOpen(value) end,
+    Refresh = refresh,
+    Aim = function()
+        return Runtime.chance, Runtime.guard, Runtime.spread, Runtime.part,
+            Runtime.reason, Runtime.shots, Runtime.damage, Runtime.walls
+    end,
+    Impacts = function() return Runtime.impacts, Runtime.gap end,
+    Unload = function() if _G.BSHL_UNLOAD then _G.BSHL_UNLOAD() end end,
+}
